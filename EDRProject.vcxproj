@@ -131,6 +131,7 @@
   <ItemGroup>
     <ClInclude Include="ETWMonitor.h" />
     <ClInclude Include="eventCollector.h" />
+    <ClInclude Include="EventTypes.h" />
     <ClInclude Include="processScanner.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

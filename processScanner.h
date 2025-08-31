@@ -1,17 +1,5 @@
 #pragma once
-#include <windows.h>
-#include <tlhelp32.h>
-#include <vector>
-#include <string>
-#include <iostream>
-
-struct ProcessInfo {
-    DWORD pid;
-    DWORD parentPid;
-    std::wstring name;
-    std::string path;
-    std::string commandLine;
-};
+#include "EventTypes.h"
 
 class processScanner {
 private:
@@ -21,7 +9,7 @@ private:
 public:
     processScanner();
     ~processScanner();
-    std::vector<ProcessInfo> getRunningProcesses();
-    ProcessInfo getProcessInfo(DWORD pid);
+    std::vector<Process> getRunningProcesses();
+    Process getProcessInfo(DWORD pid);
     void printProcesses();    
 };
