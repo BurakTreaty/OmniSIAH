@@ -4,12 +4,12 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <evntrace.h>
-#include <evntcons.h>
+#include <evntrace.h>   // StartTrace, ControlTrace, EnableTraceEx2
+#include <evntcons.h>   // OpenTrace, ProcessTrace, EVENT_RECORD callback
+#include <tdh.h>        // (optional) advanced parsing with TDH
 #include <functional>
 #include <atomic>
 #include <memory>
-#include <tdh.h>
 #include <thread>
 
 struct Process {

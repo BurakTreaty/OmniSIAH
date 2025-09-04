@@ -1,17 +1,6 @@
-#include "processScanner.h"
+#include "EventTypes.h"
 
-int main()
-{
-    // Create an instance of ProcessScanner class
-    processScanner scanner;
-
-    scanner.printProcesses();
+int main() {
 
     return 0;
 }
-
-
-/*TODO LIST:
-* Update TODO's on processScanner.cpp
-* Using parent process id, track the process history
-*/

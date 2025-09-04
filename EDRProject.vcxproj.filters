@@ -24,10 +24,10 @@
     <ClCompile Include="eventCollector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ETWMonitor.cpp">
+    <ClCompile Include="processScanner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="processScanner.cpp">
+    <ClCompile Include="ETW.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,10 +35,10 @@
     <ClInclude Include="eventCollector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ETWMonitor.h">
+    <ClInclude Include="processScanner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="processScanner.h">
+    <ClInclude Include="EventTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
