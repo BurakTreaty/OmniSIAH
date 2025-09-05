@@ -11,7 +11,8 @@
 #include <atomic>
 #include <memory>
 #include <thread>
-
+#include <initguid.h> 
+#include <guiddef.h>
 struct Process {
     DWORD pid;
     DWORD parentPid;
