@@ -18,14 +18,17 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="eventCollector.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EtwKernelLogger.cpp">
+      <Filter>Source Files\Event Collector</Filter>
+    </ClCompile>
+    <ClCompile Include="eventCollector.cpp">
+      <Filter>Source Files\Event Collector</Filter>
     </ClCompile>
     <ClCompile Include="processScanner.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ETW.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Event Collector</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="EventTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EtwKernelLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -124,11 +124,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ETW.cpp" />
+    <ClCompile Include="EtwKernelLogger.cpp" />
     <ClCompile Include="eventCollector.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="processScanner.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EtwKernelLogger.h" />
     <ClInclude Include="eventCollector.h" />
     <ClInclude Include="EventTypes.h" />
     <ClInclude Include="processScanner.h" />

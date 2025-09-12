@@ -43,11 +43,11 @@ bool EnablePrivilege(LPCWSTR privName) { // get the privilige name and enable it
 VOID WINAPI OnEventRecord(PEVENT_RECORD record) {
     auto& h = record->EventHeader;
    /* h structure:
-   ProviderId: the GUID of the event provider.
-    ProcessId: the PID that generated the event.
-    ThreadId : the TID that generated it.
-    EventDescriptor.Id : the event ID.
-    EventDescriptor.Opcode : what action happened 0->Info 1->Start 2->stop .*/
+   ProviderId:GUID of the event provider.
+   ProcessId:PID that generated the event.
+   ThreadId:TID that generated it.
+   EventDescriptor.Id:the event ID.
+   EventDescriptor.Opcode:which action happened 0->Info 1->Start 2->stop .*/
 
     if (h.EventDescriptor.Opcode == 1) {
         std::wcout << L"[+] Process Start: PID=" << h.ProcessId << std::endl;
@@ -135,7 +135,7 @@ int wmain() {
             << GetErrorMessage(status) << std::endl;
     }
 
-    // 3) Cleanup
+    // 3)Clean
     CloseTrace(consumerHandle); //close consumer
     ControlTrace(sessionHandle, sessionName, props, EVENT_TRACE_CONTROL_STOP); //stop ETW session
 
