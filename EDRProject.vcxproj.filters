@@ -24,17 +24,11 @@
     <ClCompile Include="EtwKernelLogger.cpp">
       <Filter>Source Files\Event Collector</Filter>
     </ClCompile>
-    <ClCompile Include="eventCollector.cpp">
-      <Filter>Source Files\Event Collector</Filter>
-    </ClCompile>
     <ClCompile Include="processScanner.cpp">
       <Filter>Source Files\Event Collector</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="eventCollector.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="processScanner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
