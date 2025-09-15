@@ -5,9 +5,12 @@
 #include <iostream>
 #include <evntrace.h> 
 #include <evntcons.h>  
-#include <tdh.h>
 #include <initguid.h> 
 #include <guiddef.h>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
 struct Process {
     DWORD pid;
     DWORD parentPid;

@@ -1,8 +1,22 @@
 #include "EtwKernelLogger.h"
+#include "processScanner.h"
+
+//Mutex
+#include <thread>
+#include <atomic>
+
+std::atomic<bool> etwRunning(false);
+std::thread etwThread;
+
+void runEtw(EtwKernelLogger* etw) {
+    etwRunning = true;
+    etw->Run();   // blocking call
+    etwRunning = false;
+}
 
 int wmain() {
-    std::wcout << L"EDR Agent Manager----------"<<std::endl;
-    int opt = 0;
+    std::wcout << L"EDR Agent Manager ----------" << std::endl;
+
     EtwKernelLogger etw;
     if (!etw.EnablePrivileges()) return 1;
     if (!etw.SetupProvider()) return 1;
@@ -10,14 +24,53 @@ int wmain() {
         etw.StopAndClean();
         return 1;
     }
-    while (opt != 4) {
-        std::wcout  << L"Choose an option:" << std::endl;
-        std::cin >> opt;
-        if (opt == 1) { etw.Run(); }
-        if (opt == 2) { void; }
-        if (opt == 3) { void; }
-        if (opt == 4) { etw.StopAndClean(); }
+
+    int opt = 0;
+    while (opt != 5) {
+        std::wcout << L"\nChoose an option:\n"
+            << L"1. Start ETW process monitor\n"
+            << L"2. Take system snapshot\n"
+            << L"3. Stop ETW\n"
+            << L"4. NULL\n> "
+            << L"5. Exit\n> ";
+        std::wcin >> opt;
+
+        if (opt== 1) {
+            if (!etwRunning) {
+                etwThread = std::thread(runEtw, &etw);
+                std::wcout << L"[+] ETW process monitoring started in background thread.\n";
+            }
+            else {
+                std::wcout << L"[!] ETW is already running.\n";
+            }
+        }
+
+        if (opt ==2) {
+            processScanner scanner;
+            scanner.printProcesses();
+        }
+
+        if (opt == 3) {
+            if (etwRunning) {
+                etw.StopAndClean();
+                if (etwThread.joinable()) etwThread.join();
+                std::wcout << L"[+] ETW monitoring stopped.\n";
+            }
+            else {
+                std::wcout << L"[!] ETW is not running.\n";
+            }
+        }
+
+        if (opt == 4) {
+            void;
+        }
     }
-    
+
+    if (etwRunning) {
+        etw.StopAndClean();
+        if (etwThread.joinable()) etwThread.join();
+    }
+
+    std::wcout << L"Exiting program...\n";
     return 0;
 }

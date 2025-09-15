@@ -1,5 +1,4 @@
 #include "EtwKernelLogger.h"
-#include <iostream>
 
 // Link with advapi32.lib and tdh.lib
 #pragma comment(lib, "advapi32.lib")
@@ -46,28 +45,33 @@ bool EtwKernelLogger::EnablePrivilege(LPCWSTR privName) {
     return GetLastError() == ERROR_SUCCESS; //if fail return error
 }
 
+// Event logging operation
 VOID WINAPI EtwKernelLogger::OnEventRecord(PEVENT_RECORD record) {
     auto& h = record->EventHeader;
-    /* h structure:
-   ProviderId:GUID of the event provider.
-   ProcessId:PID that generated the event.
-   ThreadId:TID that generated it.
-   EventDescriptor.Id:the event ID.
-   EventDescriptor.Opcode:which action happened 0->Info 1->Start 2->stop .*/
-    if (h.EventDescriptor.Opcode == 1) {
-        std::wcout << L"[+] Process Start: PID=" << h.ProcessId << std::endl;
-    }
-    else if (h.EventDescriptor.Opcode == 2) {
-        std::wcout << L"[-] Process Exit: PID=" << h.ProcessId << std::endl;
-    }
-    else {
-        std::wcout << L"[ETW] EventId=" << h.EventDescriptor.Id
-            << L" Opcode=" << (int)h.EventDescriptor.Opcode
-            << L" PID=" << h.ProcessId << std::endl;
+
+    // Timestamp
+    std::time_t now = std::time(nullptr);
+    std::tm localTime;
+    localtime_s(&localTime, &now);
+
+    // Format as readable text
+    std::wostringstream entry;
+    entry << L"[" << std::put_time(&localTime, L"%Y-%m-%d %H:%M:%S") << L"] "
+        << L"PID=" << h.ProcessId
+        << L", TID=" << h.ThreadId
+        << L", EventID=" << h.EventDescriptor.Id
+        << L", Opcode=" << (int)h.EventDescriptor.Opcode
+        << std::endl;
+
+    //All evenets recorded in EventLog for further investiagion
+    std::wofstream log("EventLog.txt", std::ios::app);
+    if (log.is_open()) {
+        log << entry.str();
     }
 }
 
-bool EtwKernelLogger::EnablePrivileges() {//priv enable checker
+//priv enable checker
+bool EtwKernelLogger::EnablePrivileges() {
     bool ok1 = EnablePrivilege(SE_SYSTEM_PROFILE_NAME);
     bool ok2 = EnablePrivilege(SE_DEBUG_NAME);
     if (!ok1) std::wcerr << L"Failed to enable SeSystemProfilePrivilege\n";
@@ -75,7 +79,8 @@ bool EtwKernelLogger::EnablePrivileges() {//priv enable checker
     return ok1 && ok2;
 }
 
-bool EtwKernelLogger::SetupProvider() {//1) Setup provider session
+//1) Setup provider session
+bool EtwKernelLogger::SetupProvider() {
     const wchar_t* sessionName = KERNEL_LOGGER_NAME;//predefined constant name for kernel session KERNEL_LOGGER_NAME -> NT Kernel Logger
     
     //propeties arrangement and allocation
@@ -123,10 +128,7 @@ bool EtwKernelLogger::SetupConsumer() {
 }
 
 void EtwKernelLogger::Run() { //Run 
-    std::wcout << L"Listening for process start/exit events...\n"
-        << L"Open or close Notepad/Calc/etc. to trigger events.\n"
-        << L"Press Ctrl+C to stop.\n";
-
+    std::wcout << L"Listening for process start/exit events...";
     ULONG status = ProcessTrace(&consumerHandle, 1, nullptr, nullptr);
     if (status != ERROR_SUCCESS) {
         std::wcerr << L"ProcessTrace failed (" << status << L"): "

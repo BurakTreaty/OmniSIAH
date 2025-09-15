@@ -50,7 +50,7 @@ Process processScanner::getProcessInfo(DWORD pid) {
     std::vector<Process> processes = getRunningProcesses();
 
     // Iterate through the vector of processes to find the one with matching PID
-    for (Process process : processes) { //TODO: get something fixated instead of const auto&
+    for (Process process : processes) {
         if (process.pid == pid) {
             // Found the matching process, return its information
             return process;
