@@ -1,5 +1,13 @@
 #pragma once
-#include "EventTypes.h"
+#include "libs.h"
+struct Process {
+    DWORD pid;
+    DWORD parentPid;
+    std::wstring name;
+    std::string path;
+    std::string commandLine;
+    bool isAlert = false;
+};
 
 class processScanner {
 private:

@@ -1,20 +1,20 @@
-#include "EtwKernelLogger.h"
+#include "EtwSession.h"
 
 // Link with advapi32.lib and tdh.lib
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "tdh.lib")
 
-EtwKernelLogger::EtwKernelLogger() { //construcator
+EtwSession::EtwSession() { //construcator
     sessionHandle = 0;
     consumerHandle = 0;
     props = nullptr;
 }
 
-EtwKernelLogger::~EtwKernelLogger() { //destructor
-    StopAndClean();
+EtwSession::~EtwSession() { //destructor
+    stopAndClean();
 }
 
-std::wstring EtwKernelLogger::GetErrorMessage(DWORD code) {
+std::wstring EtwSession::getErrorMessage(DWORD code) {
     LPWSTR buffer = nullptr;
     FormatMessageW(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -25,7 +25,7 @@ std::wstring EtwKernelLogger::GetErrorMessage(DWORD code) {
     return msg;
 }
 // --------- Privilege enabler ----------
-bool EtwKernelLogger::EnablePrivilege(LPCWSTR privName) {
+bool EtwSession::enablePrivilege(LPCWSTR privName) {
     HANDLE hToken; // access token handle
     TOKEN_PRIVILEGES tp; // name of privilege to enable/disable
     LUID luid; // to enable or disable privilege
@@ -46,41 +46,124 @@ bool EtwKernelLogger::EnablePrivilege(LPCWSTR privName) {
 }
 
 // Event logging operation
-VOID WINAPI EtwKernelLogger::OnEventRecord(PEVENT_RECORD record) {
-    auto& h = record->EventHeader;
 
+VOID WINAPI EtwSession::onEventRecord(PEVENT_RECORD record) {
+    int opCode = (int)record->EventHeader.EventDescriptor.Opcode;
+
+    if (opCode == 1) {
+        Process p;
+        p.pid = record->EventHeader.ProcessId;
+        p.parentPid = parentPID(record);
+        p.name = L"<exe name>";
+        p.path = "<path>";
+        p.commandLine = "<cmdline>";
+        
+
+    }
+
+    // Get process name
+    std::wstring processName = L"<unknown>";
+    HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (hProc) {
+        wchar_t buffer[MAX_PATH] = { 0 };
+        DWORD size = MAX_PATH;
+        if (QueryFullProcessImageNameW(hProc, 0, buffer, &size)) {
+            processName = buffer;
+        }
+        CloseHandle(hProc);
+    }
+    //Process DLL/EXE loads
+    if (opCode == 10) {
+
+    }
     // Timestamp
     std::time_t now = std::time(nullptr);
     std::tm localTime;
     localtime_s(&localTime, &now);
+    
 
-    // Format as readable text
     std::wostringstream entry;
     entry << L"[" << std::put_time(&localTime, L"%Y-%m-%d %H:%M:%S") << L"] "
-        << L"PID=" << h.ProcessId
-        << L", TID=" << h.ThreadId
-        << L", EventID=" << h.EventDescriptor.Id
-        << L", Opcode=" << (int)h.EventDescriptor.Opcode
+        << L"PID=" << pid
+        << L", Process=" << processName
+        << L", TID=" << tid
+        << L", EventID=" << record->EventHeader.EventDescriptor.Id
+        << L", Opcode=" << opCode
         << std::endl;
 
-    //All evenets recorded in EventLog for further investiagion
-    std::wofstream log("EventLog.txt", std::ios::app);
-    if (log.is_open()) {
-        log << entry.str();
+    // Append to log
+    if (opCode == 1 || opCode== 2 ) {
+        std::wofstream log("EventLog.txt", std::ios::app);
+        if (log.is_open()) {
+            log << entry.str();
+        }
     }
+    
+}
+DWORD EtwSession::parentPID(PEVENT_RECORD rec) {
+    DWORD parentPid = 0;
+    ULONG bufferSize = 0;
+    TdhGetEventInformation(rec, 0, nullptr, nullptr, &bufferSize);
+    PTRACE_EVENT_INFO info = (PTRACE_EVENT_INFO)malloc(bufferSize);
+    TdhGetEventInformation(rec, 0, nullptr, info, &bufferSize);
+
+
+    for (ULONG i = 0; i < info->TopLevelPropertyCount; i++) {
+        EVENT_PROPERTY_INFO prop = info->EventPropertyInfoArray[i];
+        std::wstring propName = (LPWSTR)((PBYTE)info + prop.NameOffset);
+
+        if (propName == L"ParentProcessID") {
+            PROPERTY_DATA_DESCRIPTOR desc{};
+            desc.PropertyName = (ULONGLONG)((PBYTE)info + prop.NameOffset);
+
+            ULONG size = sizeof(parentPid);
+            TdhGetProperty(rec, 0, nullptr, 1, &desc, size, (PBYTE)&parentPid);
+            break;
+        }
+    }
+    free(info);
+    return parentPid; // 0 if not found
 }
 
+std::wstring EtwSession::dllPath(PEVENT_RECORD rec) {
+    std::wstring dllPath = L"<unknown>";
+    ULONG bufferSize = 0;
+    TdhGetEventInformation(rec, 0, nullptr, nullptr, &bufferSize);
+    PTRACE_EVENT_INFO info = (PTRACE_EVENT_INFO)malloc(bufferSize);
+    if (!info) return dllPath;
+    TdhGetEventInformation(rec, 0, nullptr, info, &bufferSize);
+
+    for (ULONG i = 0; i < info->TopLevelPropertyCount; i++) {
+        PROPERTY_DATA_DESCRIPTOR desc{};
+        desc.PropertyName = (ULONGLONG)((PBYTE)info + info->EventPropertyInfoArray[i].NameOffset);
+
+        WCHAR value[1024] = { 0 };
+        ULONG size = sizeof(value);
+
+        if (TdhGetProperty(rec, 0, nullptr, 1, &desc, size, (PBYTE)value) == ERROR_SUCCESS) {
+            dllPath = value; 
+            break;          
+        }
+    }
+
+    free(info);
+    return dllPath;
+}
+
+
+
+
 //priv enable checker
-bool EtwKernelLogger::EnablePrivileges() {
-    bool ok1 = EnablePrivilege(SE_SYSTEM_PROFILE_NAME);
-    bool ok2 = EnablePrivilege(SE_DEBUG_NAME);
+bool EtwSession::enablePrivileges() {
+    bool ok1 = enablePrivilege(SE_SYSTEM_PROFILE_NAME);
+    bool ok2 = enablePrivilege(SE_DEBUG_NAME);
     if (!ok1) std::wcerr << L"Failed to enable SeSystemProfilePrivilege\n";
     if (!ok2) std::wcerr << L"Failed to enable SeDebugPrivilege\n";
     return ok1 && ok2;
 }
 
 //1) Setup provider session
-bool EtwKernelLogger::SetupProvider() {
+bool EtwSession::setupProvider() {
     const wchar_t* sessionName = KERNEL_LOGGER_NAME;//predefined constant name for kernel session KERNEL_LOGGER_NAME -> NT Kernel Logger
     
     //propeties arrangement and allocation
@@ -93,13 +176,13 @@ bool EtwKernelLogger::SetupProvider() {
     props->Wnode.Flags = WNODE_FLAG_TRACED_GUID; //trace guid session
     props->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES); // buffer offset of logger name (i.e offset of NT Kernel Logger)
     props->LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE; //don’t log to a file, deliver events live to consumers -for now-
-    props->EnableFlags = EVENT_TRACE_FLAG_PROCESS; // track process events //TODO: EVENT_TRACE_FLAG_IMAGE_LOAD for DLL/exe loads
+    props->EnableFlags = EVENT_TRACE_FLAG_PROCESS | EVENT_TRACE_FLAG_THREAD | EVENT_TRACE_FLAG_IMAGE_LOAD; // track process events , dll/exe loads
 
     //1.2) Start session (provider)
     ULONG status = StartTrace(&sessionHandle, sessionName, props); // start session with given props
     if (status != ERROR_SUCCESS && status != ERROR_ALREADY_EXISTS) { //error handling -if sesssion is already created or failed without error
         std::wcerr << L"StartTrace failed (" << status << L"): "
-            << GetErrorMessage(status) << std::endl;
+            << getErrorMessage(status) << std::endl;
         free(props);
         props = nullptr;
         return false;
@@ -108,35 +191,36 @@ bool EtwKernelLogger::SetupProvider() {
 }
 
 //2) setup consumer session
-bool EtwKernelLogger::SetupConsumer() { 
+bool EtwSession::setupConsumer() { 
     const wchar_t* sessionName = KERNEL_LOGGER_NAME;
     //2.1) consumer properities
     EVENT_TRACE_LOGFILEW logfile{};  // consume properities init from the logfile
     logfile.LoggerName = (LPWSTR)sessionName; //name is same as session name
     logfile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD; //real time trace in Event_record format 
-    logfile.EventRecordCallback = (PEVENT_RECORD_CALLBACK)(OnEventRecord); //callback register
+    logfile.EventRecordCallback = (PEVENT_RECORD_CALLBACK)(onEventRecord); //callback register
 
     //2.2) start consumer session
     consumerHandle = OpenTraceW(&logfile);
     if (consumerHandle == INVALID_PROCESSTRACE_HANDLE) {
         DWORD err = GetLastError();
         std::wcerr << L"OpenTrace failed: " << err << L" ("
-            << GetErrorMessage(err) << L")\n";
+            << getErrorMessage(err) << L")\n";
         return false;
     }
     return true;
 }
 
-void EtwKernelLogger::Run() { //Run 
+void EtwSession::run() { //Run 
     std::wcout << L"Listening for process start/exit events...";
     ULONG status = ProcessTrace(&consumerHandle, 1, nullptr, nullptr);
     if (status != ERROR_SUCCESS) {
         std::wcerr << L"ProcessTrace failed (" << status << L"): "
-            << GetErrorMessage(status) << std::endl;
+            << getErrorMessage(status) << std::endl;
     }
+    ProcOrganizer procList;
 }
 
-void EtwKernelLogger::StopAndClean() {
+void EtwSession::stopAndClean() {
     if (consumerHandle) {
         CloseTrace(consumerHandle);
         consumerHandle = 0;

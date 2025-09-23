@@ -3,8 +3,6 @@
 ├── src/
 │   ├── main.cpp                 # Entry point and agent orchestration
 │   ├── EventCollector/          # Event collection components
-│   │   ├── EventCollector.h
-│   │   ├── EventCollector.cpp
 │   │   ├── ETWMonitor.h
 │   │   ├── ETWMonitor.cpp
 │   │   ├── ProcessScanner.h

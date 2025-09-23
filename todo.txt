@@ -1,4 +1,3 @@
-logman stop "NT Kernel Logger" -ets
 TODO:
--GUI html ya da windows GUI
--Take sys snapshot, restart consumer, stop consumer
+-OutputModule/
+-DetectionEngine/

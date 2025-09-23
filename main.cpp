@@ -1,4 +1,4 @@
-#include "EtwKernelLogger.h"
+#include "EtwSession.h"
 #include "processScanner.h"
 
 //Mutex
@@ -8,20 +8,20 @@
 std::atomic<bool> etwRunning(false);
 std::thread etwThread;
 
-void runEtw(EtwKernelLogger* etw) {
+void runEtw(EtwSession* etw) {
     etwRunning = true;
-    etw->Run();   // blocking call
+    etw->run();   // blocking call
     etwRunning = false;
 }
 
 int wmain() {
     std::wcout << L"EDR Agent Manager ----------" << std::endl;
 
-    EtwKernelLogger etw;
-    if (!etw.EnablePrivileges()) return 1;
-    if (!etw.SetupProvider()) return 1;
-    if (!etw.SetupConsumer()) {
-        etw.StopAndClean();
+    EtwSession etw;
+    if (!etw.enablePrivileges()) return 1;
+    if (!etw.setupProvider()) return 1;
+    if (!etw.setupConsumer()) {
+        etw.stopAndClean();
         return 1;
     }
 
@@ -52,7 +52,7 @@ int wmain() {
 
         if (opt == 3) {
             if (etwRunning) {
-                etw.StopAndClean();
+                etw.stopAndClean();
                 if (etwThread.joinable()) etwThread.join();
                 std::wcout << L"[+] ETW monitoring stopped.\n";
             }
@@ -67,7 +67,7 @@ int wmain() {
     }
 
     if (etwRunning) {
-        etw.StopAndClean();
+        etw.stopAndClean();
         if (etwThread.joinable()) etwThread.join();
     }
 

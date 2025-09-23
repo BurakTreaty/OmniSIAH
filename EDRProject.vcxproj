@@ -132,14 +132,16 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="EtwKernelLogger.cpp" />
+    <ClCompile Include="EtwSession.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="processScanner.cpp" />
+    <ClCompile Include="ProcOrganizer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EtwKernelLogger.h" />
+    <ClInclude Include="EtwSession.h" />
     <ClInclude Include="EventTypes.h" />
     <ClInclude Include="processScanner.h" />
+    <ClInclude Include="ProcOrganizer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

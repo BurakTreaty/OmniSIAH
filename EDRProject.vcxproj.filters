@@ -16,16 +16,22 @@
     <Filter Include="Source Files\Event Collector">
       <UniqueIdentifier>{c27c8d10-193a-4286-93df-701508559799}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Output Module">
+      <UniqueIdentifier>{8defead0-a873-4759-a44a-be1e2039528a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EtwKernelLogger.cpp">
+    <ClCompile Include="EtwSession.cpp">
       <Filter>Source Files\Event Collector</Filter>
     </ClCompile>
     <ClCompile Include="processScanner.cpp">
       <Filter>Source Files\Event Collector</Filter>
+    </ClCompile>
+    <ClCompile Include="ProcOrganizer.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -35,7 +41,10 @@
     <ClInclude Include="EventTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EtwKernelLogger.h">
+    <ClInclude Include="EtwSession.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ProcOrganizer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
