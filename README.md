@@ -5,6 +5,7 @@ This project demonstrates how an Endpoint Detection and Response (EDR) agent for
 The goal is to showcase low-level defensive security engineering skills using **C/C++**, **Windows API**, and **event tracing mechanisms**.
 
 ⚠️ **Disclaimer**: This project is for educational purposes only. It should only be run in a controlled lab environment. Do not deploy on production systems.
+⚠️ **Disclaimer**: Virtual enviroment testing recommended, use at your own risk.
 
 ---
 
@@ -12,30 +13,26 @@ The goal is to showcase low-level defensive security engineering skills using **
 - **Process Monitoring**  
   - Capture process creation and termination events.
   - Collect parent/child relationship data.
+  - Monitor dll loads and executions.
+  - View system snapshot.
 - **File Activity Logging**  
   - Monitor file create/delete/modify events.
 - **Registry Monitoring**  
   - Detect suspicious registry changes (e.g., persistence mechanisms).
 - **Detection Logic**  
   - Simple rule engine (e.g., alert if process spawns PowerShell or modifies `Run` registry keys).
-- **Logging and Alerting**  
-  - Write structured logs (JSON) for further analysis.
-  - Optional: send events to a local REST API for visualization.
 
 ---
 
 ## Architecture
 - **Kernel/User Interaction**  
-  - Use Windows Event Tracing (ETW) and/or native API hooks for telemetry.
+  - Use Windows Event Tracing (ETW) hooks for telemetry and TDH api for event inspection.
 - **Components**  
-  1. **Event Collector** – subscribes to ETW providers or uses `CreateToolhelp32Snapshot` for process info.
-  2. **Detection Engine** – evaluates collected events against defined rules.
-  3. **Output Module** – logs events to file or forwards them via HTTP.
+  1. **Event Collector** – subscribes to ETW providers and uses `TDH` for process info writes logged event into raw data.
+  2. **Detection Engine** – evaluates collected events against defined rules. Does not quarantine nor remove, simply marks as alert.
+  3. **Output Module** – Reads logged events and creates UI for user readablity.
 
 ---
 
-## Technologies
 - **Language**: C/C++
-- **APIs**:  
-  - [Windows API](https://learn.microsoft.com/en-us/windows/win32/api/)
-  - [Event Tracing for Windows (ETW)](https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/event-tracing-for-windows--etw-)
+
