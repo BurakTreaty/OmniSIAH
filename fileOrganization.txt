@@ -13,12 +13,10 @@
 │   │   ├── RulesManager.h
 │   │   └── RulesManager.cpp
 │   ├── OutputModule/            # Output handlers
-│   │   ├── OutputModule.h
+│   │   ├── OutputModule.h  
 │   │   ├── OutputModule.cpp
-│   │   ├── FileLogger.h
+│   │   ├── FileLogger.h	//File logger integrated into  evenet collector modules
 │   │   ├── FileLogger.cpp
-│   │   ├── HTTPClient.h
-│   │   └── HTTPClient.cpp
 │   └── Common/                  # Shared utilities
 │       ├── ConfigManager.h
 │       ├── ConfigManager.cpp

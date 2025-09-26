@@ -1,9 +1,122 @@
-#include "EtwSession.h"
+﻿#include "EtwSession.h"
 
 // Link with advapi32.lib and tdh.lib
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "tdh.lib")
 
+//TDH functions
+std::wstring processName(PEVENT_RECORD rec) {
+    std::wstring name = L"<unknown>";
+    ULONG bufferSize = 0;
+
+    TdhGetEventInformation(rec, 0, nullptr, nullptr, &bufferSize);
+    PTRACE_EVENT_INFO info = (PTRACE_EVENT_INFO)malloc(bufferSize);
+    if (!info) return name;
+
+
+    if (TdhGetEventInformation(rec, 0, nullptr, info, &bufferSize) != ERROR_SUCCESS) {
+        free(info);
+        return name;
+    }
+
+    for (ULONG i = 0; i < info->TopLevelPropertyCount; i++) {
+        EVENT_PROPERTY_INFO prop = info->EventPropertyInfoArray[i];
+        std::wstring propName = (LPWSTR)((PBYTE)info + prop.NameOffset);
+
+        if (propName == L"ImageFileName" || propName == L"ProcessName") {
+            PROPERTY_DATA_DESCRIPTOR desc{};
+            desc.PropertyName = (ULONGLONG)((PBYTE)info + prop.NameOffset);
+
+            WCHAR value[1024] = { 0 };
+            ULONG size = sizeof(value);
+            if (TdhGetProperty(rec, 0, nullptr, 1, &desc, size, (PBYTE)value) == ERROR_SUCCESS) {
+                name = value;
+            }
+            break;
+        }
+    }
+
+    free(info);
+    return name;
+}  
+//TDH NAME RETRİVE DOES NOT WORK
+
+std::wstring ResolveProcessName(DWORD pid) {
+
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (hProcess) {
+        WCHAR buffer[MAX_PATH];
+        DWORD size = MAX_PATH;
+        if (QueryFullProcessImageNameW(hProcess, 0, buffer, &size)) {
+            CloseHandle(hProcess);
+            return std::wstring(buffer);
+        }
+        CloseHandle(hProcess);
+    }
+    return L"<unknown>";
+}
+
+DWORD parentPID(PEVENT_RECORD rec) {
+    DWORD parentPid = 0;
+    ULONG bufferSize = 0;
+    TdhGetEventInformation(rec, 0, nullptr, nullptr, &bufferSize);
+    PTRACE_EVENT_INFO info = (PTRACE_EVENT_INFO)malloc(bufferSize);
+    TdhGetEventInformation(rec, 0, nullptr, info, &bufferSize);
+
+
+    for (ULONG i = 0; i < info->TopLevelPropertyCount; i++) {
+        EVENT_PROPERTY_INFO prop = info->EventPropertyInfoArray[i];
+        std::wstring propName = (LPWSTR)((PBYTE)info + prop.NameOffset);
+
+        if (propName == L"ParentProcessID") {
+            PROPERTY_DATA_DESCRIPTOR desc{};
+            desc.PropertyName = (ULONGLONG)((PBYTE)info + prop.NameOffset);
+
+            ULONG size = sizeof(parentPid);
+            TdhGetProperty(rec, 0, nullptr, 1, &desc, size, (PBYTE)&parentPid);
+            break;
+        }
+    }
+    free(info);
+    return parentPid; // 0 if not found
+}
+
+std::wstring dllPath(PEVENT_RECORD rec) {
+    std::wstring path = L"<unknown>";
+    ULONG bufferSize = 0;
+
+    if (TdhGetEventInformation(rec, 0, nullptr, nullptr, &bufferSize) != ERROR_INSUFFICIENT_BUFFER)
+        return path;
+
+    PTRACE_EVENT_INFO info = (PTRACE_EVENT_INFO)malloc(bufferSize);
+    if (!info) return path;
+
+    if (TdhGetEventInformation(rec, 0, nullptr, info, &bufferSize) != ERROR_SUCCESS) {
+        free(info);
+        return path;
+    }
+    for (ULONG i = 0; i < info->TopLevelPropertyCount; i++) {
+        EVENT_PROPERTY_INFO& prop = info->EventPropertyInfoArray[i];
+        std::wstring propName = (LPWSTR)((PBYTE)info + prop.NameOffset);
+        if (propName == L"FileName" || propName == L"ImageFileName") {
+            PROPERTY_DATA_DESCRIPTOR desc{};
+            desc.PropertyName = (ULONGLONG)((PBYTE)info + prop.NameOffset);
+
+            WCHAR value[1024] = { 0 };
+            ULONG size = sizeof(value);
+
+            if (TdhGetProperty(rec, 0, nullptr, 1, &desc, size, (PBYTE)value) == ERROR_SUCCESS) {
+                path = value;
+            }
+            break; // Stop once we found a matching property
+        }
+    }
+
+    free(info);
+    return path;
+}
+
+//ETW class functions
 EtwSession::EtwSession() { //construcator
     sessionHandle = 0;
     consumerHandle = 0;
@@ -49,105 +162,33 @@ bool EtwSession::enablePrivilege(LPCWSTR privName) {
 
 VOID WINAPI EtwSession::onEventRecord(PEVENT_RECORD record) {
     int opCode = (int)record->EventHeader.EventDescriptor.Opcode;
-
-    if (opCode == 1) {
-        Process p;
-        p.pid = record->EventHeader.ProcessId;
-        p.parentPid = parentPID(record);
-        p.name = L"<exe name>";
-        p.path = "<path>";
-        p.commandLine = "<cmdline>";
-        
-
-    }
-
-    // Get process name
-    std::wstring processName = L"<unknown>";
-    HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-    if (hProc) {
-        wchar_t buffer[MAX_PATH] = { 0 };
-        DWORD size = MAX_PATH;
-        if (QueryFullProcessImageNameW(hProc, 0, buffer, &size)) {
-            processName = buffer;
-        }
-        CloseHandle(hProc);
-    }
-    //Process DLL/EXE loads
-    if (opCode == 10) {
-
-    }
+    std::wstring path;
+    path = dllPath(record);
+    
     // Timestamp
     std::time_t now = std::time(nullptr);
     std::tm localTime;
     localtime_s(&localTime, &now);
-    
-
     std::wostringstream entry;
     entry << L"[" << std::put_time(&localTime, L"%Y-%m-%d %H:%M:%S") << L"] "
-        << L"PID=" << pid
-        << L", Process=" << processName
-        << L", TID=" << tid
-        << L", EventID=" << record->EventHeader.EventDescriptor.Id
         << L", Opcode=" << opCode
-        << std::endl;
+        << L", Parent ID=" << parentPID(record)
+        << L", PID=" << record->EventHeader.ProcessId
+        << L", Process=" << ResolveProcessName(record->EventHeader.ProcessId)
+        << L", TID=" << record->EventHeader.ThreadId;
+
+    if (opCode == 10) {
+        entry << L", Path=" << dllPath(record);
+    }
+
+    entry << std::endl;
+
 
     // Append to log
-    if (opCode == 1 || opCode== 2 ) {
         std::wofstream log("EventLog.txt", std::ios::app);
         if (log.is_open()) {
             log << entry.str();
-        }
-    }
-    
-}
-DWORD EtwSession::parentPID(PEVENT_RECORD rec) {
-    DWORD parentPid = 0;
-    ULONG bufferSize = 0;
-    TdhGetEventInformation(rec, 0, nullptr, nullptr, &bufferSize);
-    PTRACE_EVENT_INFO info = (PTRACE_EVENT_INFO)malloc(bufferSize);
-    TdhGetEventInformation(rec, 0, nullptr, info, &bufferSize);
-
-
-    for (ULONG i = 0; i < info->TopLevelPropertyCount; i++) {
-        EVENT_PROPERTY_INFO prop = info->EventPropertyInfoArray[i];
-        std::wstring propName = (LPWSTR)((PBYTE)info + prop.NameOffset);
-
-        if (propName == L"ParentProcessID") {
-            PROPERTY_DATA_DESCRIPTOR desc{};
-            desc.PropertyName = (ULONGLONG)((PBYTE)info + prop.NameOffset);
-
-            ULONG size = sizeof(parentPid);
-            TdhGetProperty(rec, 0, nullptr, 1, &desc, size, (PBYTE)&parentPid);
-            break;
-        }
-    }
-    free(info);
-    return parentPid; // 0 if not found
-}
-
-std::wstring EtwSession::dllPath(PEVENT_RECORD rec) {
-    std::wstring dllPath = L"<unknown>";
-    ULONG bufferSize = 0;
-    TdhGetEventInformation(rec, 0, nullptr, nullptr, &bufferSize);
-    PTRACE_EVENT_INFO info = (PTRACE_EVENT_INFO)malloc(bufferSize);
-    if (!info) return dllPath;
-    TdhGetEventInformation(rec, 0, nullptr, info, &bufferSize);
-
-    for (ULONG i = 0; i < info->TopLevelPropertyCount; i++) {
-        PROPERTY_DATA_DESCRIPTOR desc{};
-        desc.PropertyName = (ULONGLONG)((PBYTE)info + info->EventPropertyInfoArray[i].NameOffset);
-
-        WCHAR value[1024] = { 0 };
-        ULONG size = sizeof(value);
-
-        if (TdhGetProperty(rec, 0, nullptr, 1, &desc, size, (PBYTE)value) == ERROR_SUCCESS) {
-            dllPath = value; 
-            break;          
-        }
-    }
-
-    free(info);
-    return dllPath;
+        }    
 }
 
 
@@ -175,7 +216,7 @@ bool EtwSession::setupProvider() {
     props->Wnode.BufferSize = (ULONG)propsSize;//buffer size
     props->Wnode.Flags = WNODE_FLAG_TRACED_GUID; //trace guid session
     props->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES); // buffer offset of logger name (i.e offset of NT Kernel Logger)
-    props->LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE; //don�t log to a file, deliver events live to consumers -for now-
+    props->LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_SYSTEM_LOGGER_MODE; //don’t log to a file, deliver events live to consumers -for now-
     props->EnableFlags = EVENT_TRACE_FLAG_PROCESS | EVENT_TRACE_FLAG_THREAD | EVENT_TRACE_FLAG_IMAGE_LOAD; // track process events , dll/exe loads
 
     //1.2) Start session (provider)
@@ -217,7 +258,6 @@ void EtwSession::run() { //Run
         std::wcerr << L"ProcessTrace failed (" << status << L"): "
             << getErrorMessage(status) << std::endl;
     }
-    ProcOrganizer procList;
 }
 
 void EtwSession::stopAndClean() {

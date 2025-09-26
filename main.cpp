@@ -1,9 +1,9 @@
 #include "EtwSession.h"
 #include "processScanner.h"
+#include "ProcOrganizer.h"
 
 //Mutex
-#include <thread>
-#include <atomic>
+
 
 std::atomic<bool> etwRunning(false);
 std::thread etwThread;
@@ -24,6 +24,7 @@ int wmain() {
         etw.stopAndClean();
         return 1;
     }
+    ProcOrganizer Processes;
 
     int opt = 0;
     while (opt != 5) {
@@ -46,8 +47,12 @@ int wmain() {
         }
 
         if (opt ==2) {
+            ProcOrganizer sysLog;
             processScanner scanner;
-            scanner.printProcesses();
+            scanner.dumpRunningProcesses();
+            sysLog.readSyslog();
+            sysLog.printTree();
+            sysLog.~ProcOrganizer();
         }
 
         if (opt == 3) {

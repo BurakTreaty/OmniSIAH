@@ -139,7 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EtwSession.h" />
-    <ClInclude Include="EventTypes.h" />
+    <ClInclude Include="Libs.h" />
     <ClInclude Include="processScanner.h" />
     <ClInclude Include="ProcOrganizer.h" />
   </ItemGroup>

@@ -31,14 +31,14 @@
       <Filter>Source Files\Event Collector</Filter>
     </ClCompile>
     <ClCompile Include="ProcOrganizer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Output Module</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="processScanner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EventTypes.h">
+    <ClInclude Include="Libs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="EtwSession.h">
