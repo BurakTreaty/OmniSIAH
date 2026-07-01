@@ -1,4 +1,4 @@
-# 🛡️ Mini Windows EDR Agent
+# 🛡️ OmniSIAH :Windows Endpoint Detection and Response
 
 > A lightweight, educational **Endpoint Detection and Response (EDR)** agent for Windows, demonstrating low-level defensive security engineering across C/C++ and Python.
 
